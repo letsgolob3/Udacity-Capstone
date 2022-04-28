@@ -26,7 +26,10 @@ a web application where a new message can be input and the dashboard will displa
 | ----------- | ----------- |
 | eda.py|  Script to perform exploratory data analysis |
 | emotions_model.py| Script perform text processing, and apply, evaluate, and save a multi-class classification model. |
+| emotions_app.ipynb | Jupyter notebook containing dash application |
 | pipeML.pkl| Serialized classification model.  This is generated in the emotions_model.py file.|
+| data/emotion_corpus.txt | Dataset containing the six emotions for model training and EDA |
+| images/*.jpg | Images for the application based on model result | 
 
 
 # How to interact with this project
