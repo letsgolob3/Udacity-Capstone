@@ -1,4 +1,4 @@
-# Disaster Response Pipeline Project
+# Capstone Project: Emotion prediction
 
 
 # Installations
@@ -15,24 +15,23 @@
 	- seaborn
 	- textblob
 
-# Project Overview
+# Project Overview, Problem Statement, and Solution Strategy
 Detecting emotions is difficult since it is personal, constantly changing, and nuanced.  This goal of this project is to read in a corpus of text data and classify the underlying emotion of the text.  Here, exploratory data analysis, text processing, and machine-learning pieplines were 
 applied to classify the text corpus as one of six different emotions: fear, anger, joy, surprise, love, or sadness.  A custom web application was built where a new message can be input and the dashboard displays
 the predicted emotion, the sentiment, and an image associated with the emotion.  The images were based on emotion characters from the Disney Pixar movie [Inside Out](https://www.pixar.com/feature-films/inside-out).  
 
 The data was taken from a [Kaggle competition](https://www.kaggle.com/datasets/praveengovi/emotions-dataset-for-nlp) in the NLP category.  Though the given data was already split into different sets, the data was combined here and
-then split into train and test sets for this project.  
+then split into train and test sets for this project and stratified by the emotion target.  
 
 ![Inside Out Emotions](./images/initial.jpg)
 
-
-# Problem Statement and Solution Strategy
 Multiple pipelines were created and added to a FeatureUnion to apply different transformers on the same input data.  These transformers were applied in parallel and the output was concatenated.  Then, a ColumnTransformer was used to apply different data
-transformations between text and numeric columns.  The resulting preprocessor was used as the first step within the machine learning pipeline.  A RandomizedSearchSV was used instead of a GridSearchCV to save processing time.  Instead of 
-trying out all hyperparameter permutations, RandomizedSearchCV trains the model based on a fixed number of hyperparameters sampled from a probability distribution.  
+transformations between text and numeric columns.  The resulting preprocessor was used as the first step within the machine learning pipeline.  A RandomizedSearchCV was used instead of a GridSearchCV to save processing time.  Instead of 
+trying out all hyperparameter permutations, RandomizedSearchCV trains the model based on a fixed number of hyperparameter combinations sampled from a probability distribution.  
 
 # Metrics
-Due to the imbalance...
+Due to the imbalance of emotions in the dataset (joy=34%, sadness=29%, anger=14%, fear=12%, love=8%, and surprise=4%), the precision, recall, and f1 score were calculated.  Accuracy alone would not provide a wholistic view of the
+model performance.  A possible next step would be to use over-sampling techniques with the SMOTE package for underreprented categories (fear, love, and surprise).  
 
 
 # File descriptions

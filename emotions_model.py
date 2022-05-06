@@ -269,7 +269,7 @@ def save_model(model):
     cv: Cross-validated model object
     '''  
     # Pickling and unpickling model object
-    with open('{model}.pkl','wb') as f:
+    with open(f'{model}.pkl','wb') as f:
         pickle.dump(model,f)
     
     # handler = open('hcv.pkl', "rb")

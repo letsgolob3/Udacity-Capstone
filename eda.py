@@ -4,6 +4,9 @@ Exploratory data analysis
 Adhering to CRISP-DM principles, it is important to obtain a better 
 understanding of the data before preprocessing and modeling.  
 
+What about top quantile of words in EACH category NOT in other categories?  
+
+
 '''
 
 
@@ -103,11 +106,11 @@ df.info()
 '''
 Section 1:
     
-    - 1) How many instances of each target category are there? 
-    - 2) If we group some of the target categories together into positive/negative/neutral
+    - 1.1 How many instances of each target category are there? 
+    - 1.2 If we group some of the target categories together into positive/negative/neutral
     groups, is there a trend?
-    - 3) Using TextBlob, what percent of the data is positive/negative/neutral?
-    - 4) How does the estimated sentiment from #2 compare to the score from 3? 
+    - 1.3 Using TextBlob, what percent of the data is positive/negative/neutral?
+    - 1.4 How does the estimated sentiment from #2 compare to the score from 3? 
 '''
 
 # 1.1; Emotion counts
@@ -193,7 +196,7 @@ negative, and suprise is neutral the data set is 54% negative, 42% positive,and 
 while the average sentiment for joy and love is greater than 0.  
     - The average sentiment for surprise is positive but much closer to 0 since 
 that could be positive or negative 
-- The subjectivity for surprise is higher than all the other emotion
+    - The subjectivity for surprise is higher than all the other emotions
 - From 1.4
     - The negative estimated sentiment matches the TextBlob sentiment since average
     negative estimated sentiment is less than 0, average neutral sentiment is close
@@ -205,12 +208,13 @@ that could be positive or negative
 
 '''
 Section 2a: Word count and common words questions:
-    - 1) How many total and unique words are there?
-    - 2) What are the most common words?
-    - 3) What is the term frequency for all words? 
+    - 2a.1 How many total and unique words are there?
+    - 2a.2 What are the most common words?
+    - 2a.3 What is the term frequency for all words? 
+    - 2a.4 Are there any numbers in any of the records?
 '''
 
-
+#2a.1 and 2a.2
 # Combine all records into one document and make everything lower case
 corpus = " ".join(df['document'].values).lower()
 
@@ -221,6 +225,7 @@ print(f"Number of words: {len(word_list)}")
 
 print(f"Number of unique words: {len(set(word_list))}")
 
+#2a.3
 fd = FreqDist(word_list)
 
 word_counts=pd.DataFrame(fd.most_common(),columns=['word','word_count'])
@@ -234,13 +239,20 @@ word_counts['quantile']=pd.qcut(word_counts['rank'],100,labels=np.arange(1,101))
 
 print(word_counts.loc[word_counts['quantile']==1,'word'].head(20))
 
+#2a.4
+df['has_num']=df['document'].str.contains('[0-9]+',regex=True)
+
+print(df['has_num'].value_counts())
+
+
 '''
 Section 2a results:
 
-- There are over 38,000 and 17,000 total and unique words, respectively.
-- Many of the most frequent words are stop words, so let's repeat the process 
-after removing stop words and performing lemmatization. 
-
+- From 2a.1 and 2a.2
+    - There are over 38,000 and 17,000 total and unique words, respectively.
+    - Many of the most frequent words are stop words, so let's repeat the process after removing stop words and performing lemmatization. 
+- From 2a.4
+    - There are no numbers in any record
 
 '''
 
@@ -250,15 +262,15 @@ after removing stop words and performing lemmatization.
 '''
 Section 2b:
 Word count and common words questions after stop word removal and lemmatization:
-    - 1) Are there more stop words in one category than another? 
-    - 2) Are there more words in one category than another? 
-    - 3) How many total and unique words are there?
-    - 4) What are the most common words?
-    - 5) What is the term frequency for all words? 
+    - 2b.1 Are there more stop words in one category than another? 
+    - 2b.2 Are there more words in one category than another? 
+    - 2b.3 How many total and unique words are there?
+    - 2b.4 What are the most common words by term frequency?
+    - 2b.5 What is the term frequency for all words? 
 
 '''
 
-#1-2)
+#2b.1 and 2b.2
 df['n_words']=df['document'].str.split('\s').apply(len)
 df['document']=df['document'].apply(tokenize)
 df['n_words_stop_rm']=df['document'].str.split('\s').apply(len)
@@ -278,7 +290,7 @@ df.describe()
 print(pd.pivot_table(df,index='target',values=['n_words','n_stop_wds']))
 
 
-#3-5)
+#2b.3 - 2b.5
 # Combine all records into one document and make everything lower case
 corpus = " ".join(df['document'].values).lower()
 
@@ -307,15 +319,125 @@ print(word_counts.loc[word_counts['quantile']==1,'word'].head(20))
 '''
 Section 2b results:
 
+- From 2b.1
     - The average number of stop words is least in sadness (7) and most in love (8),
     but the spread is low
+- From 2b.2
     - The average number of words between all categories rangse between 18-20
     - Distribution of words in all categories is similar
+- From 2b.4
     - There are over 23,000 and 15,000 total and unique words, respectively.
     - Some of the most common words are feel/feeling, very, myself
     
+'''
+
+
+
 
 '''
+Section 3:
+Top percentile of words for each category
+    - 3.1 What are the top words in each emotion category by term frequency
+    that are unique to that category? 
+
+'''
+
+def get_all_words(df,emotion):
+
+    '''
+    INPUT
+    df: input data
+    emotion: string to subset df
+    quantile: integer regarding which percentile to take words from
+
+    OUTPUT
+    top_words: set containing words in top 5 percentile of records
+    '''   
+    
+    # Combine all records into one document and make everything lower case by emotion
+    corpus_sub = " ".join(df.loc[df['target']==emotion,'document'].values).lower()
+
+
+    # Split by whitespace
+    word_list_sub = corpus_sub.split()    
+    
+    return word_list_sub
+
+
+
+def get_top_pctile_words(df,emotion,quantile):
+    '''
+    INPUT
+    df: input data
+    emotion: string to subset df
+    quantile: integer regarding which percentile to take words from
+
+    OUTPUT
+    top_words: set containing words in top 5 percentile of records
+    '''    
+
+    word_list_sub=get_all_words(df,emotion)
+    
+    print(f'{emotion}')
+    print(f"Number of words: {len(word_list_sub)}")
+    
+    print(f"Number of unique words: {len(set(word_list_sub))}")
+    
+    fd_sub = FreqDist(word_list_sub)
+    
+    word_counts_sub=pd.DataFrame(fd_sub.most_common(),columns=['word','word_count'])
+    word_counts_sub['TF']=word_counts_sub['word_count']/word_counts_sub['word_count'].sum()
+    
+    word_counts_sub.sort_values(by='TF',ascending=False,inplace=True)
+    
+    word_counts_sub['rank']=word_counts_sub['TF'].rank(method='first',ascending=False)
+    
+    word_counts_sub['quantile']=pd.qcut(word_counts_sub['rank'],100,labels=np.arange(1,101))
+    
+    top_words=set(word_counts_sub.loc[word_counts_sub['quantile']<=quantile,'word'].to_list())
+
+    return top_words
+
+top_words={}
+top_words={emotion:get_top_pctile_words(df,emotion,5) for emotion in df['target'].unique()}
+
+all_words={emotion:set(get_all_words(df,emotion)) for emotion in df['target'].unique()}
+
+
+top_words_per_emotion={}
+
+
+
+for emotionA,word_setA in top_words.items():
+    
+    A_not_B=[]
+    for emotionB,word_setB in all_words.items():
+        
+        
+        if emotionA!=emotionB:
+            A_not_B.extend(list(word_setA.difference(word_setB)))
+    
+    A_not_B=list(set(A_not_B))
+    
+    top_words_per_emotion[emotionA]=A_not_B
+
+# Adding in the indicators as possible features
+for emotion in df['target'].unique():
+    df[f'has_top_{emotion}_word']=df['document'].str.contains('|'.join(top_words_per_emotion[emotion]))
+
+
+'''
+Section 3 Results:
+- See printouts below for top words per emotion unique to that emotion
+
+'''
+
+for emotion,words in top_words_per_emotion.items():
+    print(f'{emotion} top words:')
+    print(words[0:11],'\n\n')
+
+
+
 
 
 
