@@ -339,6 +339,7 @@ Section 3:
 Top percentile of words for each category
     - 3.1 What are the top words in each emotion category by term frequency
     that are unique to that category? 
+    Add these as features in the model to see if accuracy is improved
 
 '''
 
@@ -424,6 +425,10 @@ for emotionA,word_setA in top_words.items():
 # Adding in the indicators as possible features
 for emotion in df['target'].unique():
     df[f'has_top_{emotion}_word']=df['document'].str.contains('|'.join(top_words_per_emotion[emotion]))
+
+
+[df[f'has_top_{emotion}_word'].replace({True:1,False:0},inplace=True) \
+     for emotion in df['target'].unique()]
 
 
 '''

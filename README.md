@@ -23,6 +23,7 @@ the predicted emotion, the sentiment, and an image associated with the emotion. 
 The data was taken from a [Kaggle competition](https://www.kaggle.com/datasets/praveengovi/emotions-dataset-for-nlp) in the NLP category.  Though the given data was already split into different sets, the data was combined here and
 then split into train and test sets for this project and stratified by the emotion target.  
 
+
 ![Inside Out Emotions](./images/initial.jpg)
 
 Multiple pipelines were created and added to a FeatureUnion to apply different transformers on the same input data.  These transformers were applied in parallel and the output was concatenated.  Then, a ColumnTransformer was used to apply different data
@@ -32,6 +33,19 @@ trying out all hyperparameter permutations, RandomizedSearchCV trains the model 
 # Metrics
 Due to the imbalance of emotions in the dataset (joy=34%, sadness=29%, anger=14%, fear=12%, love=8%, and surprise=4%), the precision, recall, and f1 score were calculated.  Accuracy alone would not provide a wholistic view of the
 model performance.  A possible next step would be to use over-sampling techniques with the SMOTE package for underreprented categories (fear, love, and surprise).  
+
+
+# Data Exploration Summary
+For detailed analysis, go to the eda.ipynp file.  
+
+
+
+
+# Implementation challenges
+## Module imports
+When running the application and importing functions from the emotions_model.py file, the entire emotions_model.py file was run at the time of import.  After some [research](https://www.pythonmorsels.com/importing-module-runs-code/), I had discovered
+that python runs all the code in a module when it is imported, which is known as an import side effect.  To prevent this, I needed to define only functions or other objects within
+the emotions_model.py file.  Therefore, I restructured the file to have everything run from a main function which called other functions.  
 
 
 # File descriptions

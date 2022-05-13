@@ -257,8 +257,12 @@ def get_performance(model,X_test,y_test):
     
     cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     
+    acc=[]
+    
+    [acc.append(round(val,3)) for val in cm]
+    
     #The diagonal entries are the accuracies of each class
-    print(cm.diagonal())
+    print(acc.diagonal())
 
 def save_model(model):
     '''
@@ -269,7 +273,7 @@ def save_model(model):
     cv: Cross-validated model object
     '''  
     # Pickling and unpickling model object
-    with open(f'{model}.pkl','wb') as f:
+    with open('model.pkl','wb') as f:
         pickle.dump(model,f)
     
     # handler = open('hcv.pkl', "rb")
