@@ -15,7 +15,7 @@
 	- seaborn
 	- textblob
 
-# Project Overview, Problem Statement, and Solution Strategy
+# Project Overview and Problem Statement Solution Strategy
 Detecting emotions is difficult since it is personal, constantly changing, and nuanced.  This goal of this project is to read in a corpus of text data and classify the underlying emotion of the text.  Here, exploratory data analysis, text processing, and machine-learning pieplines were 
 applied to classify the text corpus as one of six different emotions: fear, anger, joy, surprise, love, or sadness.  A custom web application was built where a new message can be input and the dashboard displays
 the predicted emotion, the sentiment, and an image associated with the emotion.  The images were based on emotion characters from the Disney Pixar movie [Inside Out](https://www.pixar.com/feature-films/inside-out).  
@@ -26,7 +26,9 @@ then split into train and test sets for this project and stratified by the emoti
 
 ![Inside Out Emotions](./images/initial.jpg)
 
-Multiple pipelines were created and added to a FeatureUnion to apply different transformers on the same input data.  These transformers were applied in parallel and the output was concatenated.  Then, a ColumnTransformer was used to apply different data
+# Solution Strategy and Data Preprocessing
+
+A TfidfVectorizer was used with stop words removed.  Multiple pipelines were created and added to a FeatureUnion to apply different transformers on the same input data.  These transformers were applied in parallel and the output was concatenated.  Then, a ColumnTransformer was used to apply different data
 transformations between text and numeric columns.  The resulting preprocessor was used as the first step within the machine learning pipeline.  A RandomizedSearchCV was used instead of a GridSearchCV to save processing time.  Instead of 
 trying out all hyperparameter permutations, RandomizedSearchCV trains the model based on a fixed number of hyperparameter combinations sampled from a probability distribution.  
 
@@ -35,14 +37,18 @@ Due to the imbalance of emotions in the dataset (joy=34%, sadness=29%, anger=14%
 model performance.  A possible next step would be to use over-sampling techniques with the SMOTE package for underreprented categories (fear, love, and surprise).  
 
 
-# Data Exploration Summary
-For detailed analysis, go to the eda.ipynp file.  
+# Data Exploration 
+For detailed exploratory data analysis and visualizations, go to the eda.ipynp file.  
 
 
 
 
-# Implementation challenges
-## Module imports
+# Implementation 
+
+## SVM classifier
+It is widely recommended to use Support Vector Machine (SVM) classifiers for text categorization.  SVMs have the potential for large feature spaces, which is the case often for text and for this project after performing the TFIDFVectorizer.  Working with text
+data often requires the use of sparse matrices, and SVMs are well suited for this.  [Text Categorization with SVMs Source](https://www.cs.cornell.edu/people/tj/publications/joachims_98a.pdf).
+## Challenges with module imports
 When running the application and importing functions from the emotions_model.py file, the entire emotions_model.py file was run at the time of import.  After some [research](https://www.pythonmorsels.com/importing-module-runs-code/), I had discovered
 that python runs all the code in a module when it is imported, which is known as an import side effect.  To prevent this, I needed to define only functions or other objects within
 the emotions_model.py file.  Therefore, I restructured the file to have everything run from a main function which called other functions.  

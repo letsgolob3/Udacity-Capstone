@@ -21,24 +21,25 @@ import pandas as pd
 import re
 import pickle
 
+from sklearn import svm
 
-from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.metrics import classification_report
-from sklearn.metrics import confusion_matrix
+from sklearn.impute import SimpleImputer
 
-
-from sklearn import svm
 from nltk.tokenize import word_tokenize
 from nltk import FreqDist
-from sklearn.preprocessing import FunctionTransformer
 
+from textblob import TextBlob
 
-from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 '''
 Functions
@@ -190,7 +191,7 @@ def load_data(path):
     # Data load 
     df=pd.read_csv(path,sep=';')
     
-    print('loaded')
+    print('Loaded data')
     
     return df
 
@@ -221,19 +222,30 @@ def set_train_test_sets(df):
     
     X_test=pd.DataFrame(X_test).reset_index(drop=True)
     
-    y_test=y_test.reset_index(drop=True).to_list()    
-    
-    # X_train=pd.DataFrame(X_train.head(10)).reset_index(drop=True)
-    
-    # y_train=y_train.head(10).reset_index(drop=True).to_list()
-    
-    # X_test=pd.DataFrame(X_test.head(10)).reset_index(drop=True)
-    
-    # y_test=y_test.head(10).reset_index(drop=True).to_list()
-        
+    y_test=y_test.reset_index(drop=True).to_list()         
     
     return X_train, X_test, y_train, y_test
 
+def generateSentiment(text):
+    '''
+    INPUT
+    text - a string of text
+
+    OUTPUT
+    sentiment - a float between (negative) -1 and 1 (positive) indicating sentimenet
+    subjectivity - a float between (objective) 0 and 1 (subjective) indicating subjectivity 
+
+    '''
+    
+    tb_phrase = TextBlob(text)
+    
+    sentiment=tb_phrase.sentiment
+    
+    polarity=sentiment.polarity
+    
+    subjectivity=sentiment.subjectivity
+    
+    return polarity,subjectivity
 
 def apply_features(X):
     
@@ -245,8 +257,15 @@ def apply_features(X):
     X: features data with new features
     '''       
     
+    print('Generating features')
+    
     X['n_tokens'] = X['document'].apply(count_tokens)
     X['n_i']=X['document'].str.count('(\si\s)|(^i\s)|(\sI\s)|(^I\s)')  
+    X[['sentiment','sentiment_subjectivity']]=pd.DataFrame(X['document'].apply(generateSentiment).tolist(),
+                                                           index=X.index)
+    
+    # Only want sentiment, not the subjectivity
+    X.drop(columns=['sentiment_subjectivity'],inplace=True)
     
     return X
 
@@ -261,7 +280,7 @@ def set_pipelines(X_train,y_train):
     '''       
     
     
-    numeric_cols=['n_tokens','n_i']
+    numeric_cols=['n_tokens','n_i','sentiment']
 
     str_cols='document'
     
@@ -309,7 +328,10 @@ def set_pipelines(X_train,y_train):
     #     'clf__C': [.1,1,10,100],
     #     }
 
+    print('Fitting model')
     pipeML.fit(X_train,y_train)
+    
+    
     
     # cv=RandomizedSearchCV(pipeML,param_distributions=parameters,cv=2,verbose=2)
 
@@ -345,8 +367,6 @@ def get_performance(model,X_test,y_test):
     # Prediction on test set and performance metrics 
     predictions=model.predict(X_test)
     
-    # predictions=pipeML.predict(X_test)
-    
     # Recall, precision, accuracy, and f1 score for all categories
     print(classification_report(y_test, predictions))
     
@@ -374,28 +394,33 @@ def save_model(model):
     with open('model.pkl','wb') as f:
         pickle.dump(model,f)
     
-    # handler = open('{model}.pkl', "rb")
-    
-    # pipeML_pkl = pickle.load(handler)
-    
-    # pipeML_pkl.predict(X_test)
-    
-    
     pass
 
 
 def main():
+    '''
+    INPUT
+    None
     
+    OUTPUT
+    Serialized Model Object
+    '''  
+    
+    # Load data
     df=load_data('./data/emotion_corpus.txt')
     
+    # Indicator features for top keywords associated with each emotion
     df,_=get_top_words_per_emotion_idx(df,['surprise','love','anger','sadness',
                                           'fear','joy'])
     
+    # Set train and test sets
     X_train, X_test, y_train, y_test=set_train_test_sets(df)
     
+    # Add additional features
     X_train = apply_features(X_train)
 
     X_test = apply_features(X_test) 
+    
     
     fitted_model=set_pipelines(X_train,y_train)
     

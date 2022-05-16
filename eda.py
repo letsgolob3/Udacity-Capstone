@@ -18,29 +18,22 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import nltk
-nltk.download('punkt') # for sent_tokenize
+nltk.download('punkt') 
 nltk.download('stopwords') 
-nltk.download('wordnet') # for WordNetLemmatizer
+nltk.download('wordnet') 
 
 from nltk import word_tokenize, sent_tokenize, FreqDist
 from nltk.util import ngrams
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import RegexpTokenizer
-from textblob import TextBlob
 
-from sklearn.model_selection import train_test_split
-
-from emotions_model import get_all_words
-from emotions_model import get_top_pctile_words
 from emotions_model import get_top_words_per_emotion_idx
-
+from emotions_model import generateSentiment
 
 '''
 Functions
 '''
-
-
 
 def tokenize(text):
     '''
@@ -77,27 +70,6 @@ def tokenize(text):
     token_str=' '.join(tokens)
 
     return token_str
-
-def generateSentiment(text):
-    '''
-    INPUT
-    text - a string of text
-
-    OUTPUT
-    sentiment - a float between (negative) -1 and 1 (positive) indicating sentimenet
-    subjectivity - a float between (objective) 0 and 1 (subjective) indicating subjectivity 
-
-    '''
-    
-    tb_phrase = TextBlob(text)
-    
-    sentiment=tb_phrase.sentiment
-    
-    polarity=sentiment.polarity
-    
-    subjectivity=sentiment.subjectivity
-    
-    return polarity,subjectivity
 
     
 # Data load 
@@ -360,31 +332,6 @@ for emotion,words in top_words_per_emotion.items():
     print(f'{emotion} top words:')
     print(words[0:11],'\n\n')
 
-
-
-
-
-
-
-
-
-
-# # Setting up train and test sets 
-# X=df['document'].copy()
-# Y=df['target'].copy()
-
-# X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2,random_state=123,
-#                                                     stratify=Y)
-
-# # Append sentiment back using indices
-# train = pd.concat([X_train, y_train], axis=1)
-# test = pd.concat([X_test, y_test], axis=1)
-
-
-# # Inspect the first five records of the datasets
-# train.head()
-
-# test.head()
 
 
 
