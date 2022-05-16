@@ -31,6 +31,9 @@ from textblob import TextBlob
 
 from sklearn.model_selection import train_test_split
 
+from emotions_model import get_all_words
+from emotions_model import get_top_pctile_words
+from emotions_model import get_top_words_per_emotion_idx
 
 
 '''
@@ -339,96 +342,12 @@ Section 3:
 Top percentile of words for each category
     - 3.1 What are the top words in each emotion category by term frequency
     that are unique to that category? 
+    
     Add these as features in the model to see if accuracy is improved
 
 '''
 
-def get_all_words(df,emotion):
-
-    '''
-    INPUT
-    df: input data
-    emotion: string to subset df
-    quantile: integer regarding which percentile to take words from
-
-    OUTPUT
-    top_words: set containing words in top 5 percentile of records
-    '''   
-    
-    # Combine all records into one document and make everything lower case by emotion
-    corpus_sub = " ".join(df.loc[df['target']==emotion,'document'].values).lower()
-
-
-    # Split by whitespace
-    word_list_sub = corpus_sub.split()    
-    
-    return word_list_sub
-
-
-
-def get_top_pctile_words(df,emotion,quantile):
-    '''
-    INPUT
-    df: input data
-    emotion: string to subset df
-    quantile: integer regarding which percentile to take words from
-
-    OUTPUT
-    top_words: set containing words in top 5 percentile of records
-    '''    
-
-    word_list_sub=get_all_words(df,emotion)
-    
-    print(f'{emotion}')
-    print(f"Number of words: {len(word_list_sub)}")
-    
-    print(f"Number of unique words: {len(set(word_list_sub))}")
-    
-    fd_sub = FreqDist(word_list_sub)
-    
-    word_counts_sub=pd.DataFrame(fd_sub.most_common(),columns=['word','word_count'])
-    word_counts_sub['TF']=word_counts_sub['word_count']/word_counts_sub['word_count'].sum()
-    
-    word_counts_sub.sort_values(by='TF',ascending=False,inplace=True)
-    
-    word_counts_sub['rank']=word_counts_sub['TF'].rank(method='first',ascending=False)
-    
-    word_counts_sub['quantile']=pd.qcut(word_counts_sub['rank'],100,labels=np.arange(1,101))
-    
-    top_words=set(word_counts_sub.loc[word_counts_sub['quantile']<=quantile,'word'].to_list())
-
-    return top_words
-
-top_words={}
-top_words={emotion:get_top_pctile_words(df,emotion,5) for emotion in df['target'].unique()}
-
-all_words={emotion:set(get_all_words(df,emotion)) for emotion in df['target'].unique()}
-
-
-top_words_per_emotion={}
-
-
-
-for emotionA,word_setA in top_words.items():
-    
-    A_not_B=[]
-    for emotionB,word_setB in all_words.items():
-        
-        
-        if emotionA!=emotionB:
-            A_not_B.extend(list(word_setA.difference(word_setB)))
-    
-    A_not_B=list(set(A_not_B))
-    
-    top_words_per_emotion[emotionA]=A_not_B
-
-# Adding in the indicators as possible features
-for emotion in df['target'].unique():
-    df[f'has_top_{emotion}_word']=df['document'].str.contains('|'.join(top_words_per_emotion[emotion]))
-
-
-[df[f'has_top_{emotion}_word'].replace({True:1,False:0},inplace=True) \
-     for emotion in df['target'].unique()]
+df,top_words_per_emotion=get_top_words_per_emotion_idx(df,df['target'].unique())
 
 
 '''
@@ -450,22 +369,22 @@ for emotion,words in top_words_per_emotion.items():
 
 
 
-# Setting up train and test sets 
-X=df['document'].copy()
-Y=df['target'].copy()
+# # Setting up train and test sets 
+# X=df['document'].copy()
+# Y=df['target'].copy()
 
-X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2,random_state=123,
-                                                    stratify=Y)
+# X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2,random_state=123,
+#                                                     stratify=Y)
 
-# Append sentiment back using indices
-train = pd.concat([X_train, y_train], axis=1)
-test = pd.concat([X_test, y_test], axis=1)
+# # Append sentiment back using indices
+# train = pd.concat([X_train, y_train], axis=1)
+# test = pd.concat([X_test, y_test], axis=1)
 
 
-# Inspect the first five records of the datasets
-train.head()
+# # Inspect the first five records of the datasets
+# train.head()
 
-test.head()
+# test.head()
 
 
 

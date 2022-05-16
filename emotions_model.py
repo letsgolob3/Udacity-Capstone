@@ -34,6 +34,7 @@ from sklearn.metrics import confusion_matrix
 
 from sklearn import svm
 from nltk.tokenize import word_tokenize
+from nltk import FreqDist
 from sklearn.preprocessing import FunctionTransformer
 
 
@@ -77,7 +78,105 @@ def count_n_char(Series_col):
     n_char_col=np.array(n_char_col).reshape(-1,1)
     
     return n_char_col
+
+def get_all_words(df,emotion):
+
+    '''
+    INPUT
+    df: input data
+    emotion: string to subset df
+    quantile: integer regarding which percentile to take words from
+
+    OUTPUT
+    top_words: set containing words in top 5 percentile of records
+    '''   
     
+    # Combine all records into one document and make everything lower case by emotion
+    corpus_sub = " ".join(df.loc[df['target']==emotion,'document'].values).lower()
+
+
+    # Split by whitespace
+    word_list_sub = corpus_sub.split()    
+    
+    return word_list_sub
+
+
+
+def get_top_pctile_words(df,emotion,quantile):
+    '''
+    INPUT
+    df: input data
+    emotion: string to subset df
+    quantile: integer regarding which percentile to take words from
+
+    OUTPUT
+    top_words: set containing words in top 5 percentile of records
+    '''    
+
+    word_list_sub=get_all_words(df,emotion)
+    
+    print(f'{emotion}')
+    print(f"Number of words: {len(word_list_sub)}")
+    
+    print(f"Number of unique words: {len(set(word_list_sub))}")
+    
+    fd_sub = FreqDist(word_list_sub)
+    
+    word_counts_sub=pd.DataFrame(fd_sub.most_common(),columns=['word','word_count'])
+    word_counts_sub['TF']=word_counts_sub['word_count']/word_counts_sub['word_count'].sum()
+    
+    word_counts_sub.sort_values(by='TF',ascending=False,inplace=True)
+    
+    word_counts_sub['rank']=word_counts_sub['TF'].rank(method='first',ascending=False)
+    
+    word_counts_sub['quantile']=pd.qcut(word_counts_sub['rank'],100,labels=np.arange(1,101))
+    
+    top_words=set(word_counts_sub.loc[word_counts_sub['quantile']<=quantile,'word'].to_list())
+
+    return top_words
+
+def get_top_words_per_emotion_idx(df,target_list):
+    '''
+    INPUT
+    df: input data
+    target: list of targets
+
+    OUTPUT
+    df:input data with indicator columns for top key words in each target
+    top_words_per_target: dictionary with top keywords for each target
+    '''   
+    top_words={}
+    top_words={emotion:get_top_pctile_words(df,emotion,5) for emotion in target_list}
+
+    all_words={emotion:set(get_all_words(df,emotion)) for emotion in target_list}
+
+
+    top_words_per_target={}
+
+
+
+    for emotionA,word_setA in top_words.items():
+        
+        A_not_B=[]
+        for emotionB,word_setB in all_words.items():
+            
+            
+            if emotionA!=emotionB:
+                A_not_B.extend(list(word_setA.difference(word_setB)))
+        
+        A_not_B=list(set(A_not_B))
+        
+        top_words_per_target[emotionA]=A_not_B
+
+    # Adding in the indicators as possible features
+    for emotion in target_list:
+        df[f'has_top_{emotion}_word']=df['document'].str.contains('|'.join(top_words_per_target[emotion]))
+    
+    
+    [df[f'has_top_{emotion}_word'].replace({True:1,False:0},inplace=True) \
+         for emotion in target_list]
+        
+    return df,top_words_per_target
 
 def load_data(path):
     '''
@@ -147,7 +246,7 @@ def apply_features(X):
     '''       
     
     X['n_tokens'] = X['document'].apply(count_tokens)
-    X['n_i']=X['document'].str.count('(\si\s)|(^i\s)|(\sI\s)|(^I\s)')    
+    X['n_i']=X['document'].str.count('(\si\s)|(^i\s)|(\sI\s)|(^I\s)')  
     
     return X
 
@@ -199,27 +298,27 @@ def set_pipelines(X_train,y_train):
     # Machine learning pipeline
     pipeML=Pipeline([
         ('preprocessor',preprocessor_str_num),
-        ('clf',svm.SVC(kernel='linear'))
+        ('clf',svm.SVC(kernel='linear',C=1,gamma=0.1))
         ])
     
     
     # Parameters for chosen classifier
-    parameters = {
-        'clf__gamma': [0.1, 1.0,10],
-        'clf__kernel': ['linear','poly','rbf'],
-        'clf__C': [.1,1,10,100],
-        }
+    # parameters = {
+    #     'clf__gamma': [0.1, 1.0,10],
+    #     'clf__kernel': ['linear','poly','rbf'],
+    #     'clf__C': [.1,1,10,100],
+    #     }
 
     pipeML.fit(X_train,y_train)
     
-    cv=RandomizedSearchCV(pipeML,param_distributions=parameters,cv=2,verbose=2)
+    # cv=RandomizedSearchCV(pipeML,param_distributions=parameters,cv=2,verbose=2)
 
 
-    cv.fit(X_train,y_train)
+    # cv.fit(X_train,y_train)
 
-    print(cv.best_params_)
+    # print(cv.best_params_)
     
-    print(cv.best_score_)
+    # print(cv.best_score_)
     
     try:
         terms = preprocessor_str_num.named_transformers_['text'].transformer_list[0][1].get_feature_names()
@@ -231,7 +330,7 @@ def set_pipelines(X_train,y_train):
         print('x_train transform did not work')
         pass
 
-    return cv
+    return pipeML
   
 def get_performance(model,X_test,y_test):
     '''
@@ -257,12 +356,11 @@ def get_performance(model,X_test,y_test):
     
     cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     
-    acc=[]
-    
-    [acc.append(round(val,3)) for val in cm]
-    
     #The diagonal entries are the accuracies of each class
-    print(acc.diagonal())
+    
+    cmd=[round(val,3) for val in cm.diagonal()]
+    
+    print(cmd)
 
 def save_model(model):
     '''
@@ -276,7 +374,7 @@ def save_model(model):
     with open('model.pkl','wb') as f:
         pickle.dump(model,f)
     
-    # handler = open('hcv.pkl', "rb")
+    # handler = open('{model}.pkl', "rb")
     
     # pipeML_pkl = pickle.load(handler)
     
@@ -289,6 +387,9 @@ def save_model(model):
 def main():
     
     df=load_data('./data/emotion_corpus.txt')
+    
+    df,_=get_top_words_per_emotion_idx(df,['surprise','love','anger','sadness',
+                                          'fear','joy'])
     
     X_train, X_test, y_train, y_test=set_train_test_sets(df)
     
