@@ -36,10 +36,14 @@ from sklearn.impute import SimpleImputer
 
 from nltk.tokenize import word_tokenize
 from nltk import FreqDist
+from nltk.stem.wordnet import WordNetLemmatizer
+from nltk.corpus import stopwords
 
 from textblob import TextBlob
 
 import matplotlib.pyplot as plt
+
+
 
 '''
 Functions
@@ -269,6 +273,41 @@ def apply_features(X):
     
     return X
 
+
+def tokenize(text):
+    '''
+    INPUT
+    text - a string of text
+
+    OUTPUT
+    text - a string of text that has been processed with the steps below
+        1) Normalize
+        2) Remove punctuation
+        3) Lemmatize
+        4) Stop words removed 
+    '''
+
+    # lower case and remove punctuation
+    text = re.sub(r'[^a-zA-Z0-9]'," ",text.lower())
+
+    # tokenize text to words
+    tokens = word_tokenize(text)
+
+    # lemmatize and remove stop words
+    tokens = [WordNetLemmatizer().lemmatize(w) for w in tokens]
+    
+    stop_wds=set(stopwords.words("english"))
+    
+    emotion_relevant_stop_words={'i', 'yours', 'you', 'me', 'against',
+                                 'down','myself','very','my'}
+    
+    # Remove emotion relevant stop words from overall stop words to keep in data
+    stop_wds_modified=stop_wds.difference(emotion_relevant_stop_words)
+    
+    tokens= [w for w in tokens if w not in stop_wds_modified]
+
+    return tokens
+
 def set_pipelines(X_train,y_train):
     '''
     INPUT
@@ -289,7 +328,8 @@ def set_pipelines(X_train,y_train):
     # Setting up the NLP and ML pipelines
     
     # NLP /text preprocessing
-    vectoriser = TfidfVectorizer(token_pattern=r'[a-z]+', stop_words='english')
+#    vectoriser = TfidfVectorizer(token_pattern=r'[a-z]+', stop_words='english')
+    vectoriser = TfidfVectorizer(tokenizer=tokenize)    
     
     character_pipe = Pipeline([
         ('character_counter', FunctionTransformer(count_n_char)),

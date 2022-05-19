@@ -3,9 +3,7 @@ Exploratory data analysis
 
 Adhering to CRISP-DM principles, it is important to obtain a better 
 understanding of the data before preprocessing and modeling.  
-
-What about top quantile of words in EACH category NOT in other categories?  
-
+ 
 
 '''
 
@@ -22,20 +20,16 @@ nltk.download('punkt')
 nltk.download('stopwords') 
 nltk.download('wordnet') 
 
-from nltk import word_tokenize, sent_tokenize, FreqDist
-from nltk.util import ngrams
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from nltk.tokenize import RegexpTokenizer
+from nltk import FreqDist
 
 from emotions_model import get_top_words_per_emotion_idx
 from emotions_model import generateSentiment
+from emotions_model import tokenize
 
 '''
 Functions
 '''
-
-def tokenize(text):
+def tokenize_and_join(text):
     '''
     INPUT
     text - a string of text
@@ -47,29 +41,11 @@ def tokenize(text):
         3) Lemmatize
         4) Stop words removed 
     '''
-
-    # lower case and remove punctuation
-    text = re.sub(r'[^a-zA-Z0-9]'," ",text.lower())
-
-    # tokenize text to words
-    tokens = word_tokenize(text)
-
-    # lemmatize and remove stop words
-    tokens = [WordNetLemmatizer().lemmatize(w) for w in tokens]
+    tokens= tokenize(text)
     
-    stop_wds=set(stopwords.words("english"))
+    tokens=' '.join(tokens)
     
-    emotion_relevant_stop_words={'i', 'yours', 'you', 'me', 'against',
-                                 'down','myself','very','my'}
-    
-    # Remove emotion relevant stop words from overall stop words to keep in data
-    stop_wds_modified=stop_wds.difference(emotion_relevant_stop_words)
-    
-    tokens= [w for w in tokens if w not in stop_wds_modified]
-
-    token_str=' '.join(tokens)
-
-    return token_str
+    return tokens
 
     
 # Data load 
@@ -247,7 +223,7 @@ Word count and common words questions after stop word removal and lemmatization:
 
 #2b.1 and 2b.2
 df['n_words']=df['document'].str.split('\s').apply(len)
-df['document']=df['document'].apply(tokenize)
+df['document']=df['document'].apply(tokenize_and_join)
 df['n_words_stop_rm']=df['document'].str.split('\s').apply(len)
 df['n_stop_wds']=df['n_words']-df['n_words_stop_rm']
 
