@@ -41,8 +41,6 @@ from nltk.corpus import stopwords
 
 from textblob import TextBlob
 
-import matplotlib.pyplot as plt
-
 
 
 '''
@@ -213,7 +211,8 @@ def set_train_test_sets(df):
     
     
     # Setting up train and test sets 
-    X=df['document'].copy()
+#    X=df['document'].copy()
+    X=df.drop(columns=['target']).copy()    
     Y=df['target'].copy()
     
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2,
@@ -308,6 +307,24 @@ def tokenize(text):
 
     return tokens
 
+def tokenize_and_join(text):
+    '''
+    INPUT
+    text - a string of text
+
+    OUTPUT
+    text - a string of text that has been processed with the steps below
+        1) Normalize
+        2) Remove punctuation
+        3) Lemmatize
+        4) Stop words removed 
+    '''
+    tokens= tokenize(text)
+    
+    tokens=' '.join(tokens)
+    
+    return tokens
+
 def set_pipelines(X_train,y_train):
     '''
     INPUT
@@ -319,7 +336,10 @@ def set_pipelines(X_train,y_train):
     '''       
     
     
-    numeric_cols=['n_tokens','n_i','sentiment']
+    numeric_cols=['n_tokens','n_i','sentiment','has_top_surprise_word',
+                  'has_top_love_word','has_top_anger_word',
+                  'has_top_sadness_word','has_top_fear_word',
+                  'has_top_joy_word']
 
     str_cols='document'
     
@@ -328,8 +348,7 @@ def set_pipelines(X_train,y_train):
     # Setting up the NLP and ML pipelines
     
     # NLP /text preprocessing
-#    vectoriser = TfidfVectorizer(token_pattern=r'[a-z]+', stop_words='english')
-    vectoriser = TfidfVectorizer(tokenizer=tokenize)    
+    vectoriser = TfidfVectorizer(token_pattern=r'[a-z]+') 
     
     character_pipe = Pipeline([
         ('character_counter', FunctionTransformer(count_n_char)),
@@ -434,8 +453,15 @@ def save_model(model):
     with open('model.pkl','wb') as f:
         pickle.dump(model,f)
     
+    print('saved model')
     pass
 
+def load_model(model_str):
+    handler = open(model_str, "rb")
+
+    pipeML= pickle.load(handler)
+    
+    return pipeML
 
 def main():
     '''
@@ -449,8 +475,10 @@ def main():
     # Load data
     df=load_data('./data/emotion_corpus.txt')
     
+    df['document']=df['document'].apply(tokenize_and_join)
+    
     # Indicator features for top keywords associated with each emotion
-    df,_=get_top_words_per_emotion_idx(df,['surprise','love','anger','sadness',
+    df,top_words_per_target=get_top_words_per_emotion_idx(df,['surprise','love','anger','sadness',
                                           'fear','joy'])
     
     # Set train and test sets
