@@ -140,13 +140,13 @@ In general, scores increased for most categories by 1%.
 
 ## Sample classification results
 The first example shows a classification of sadness with a negative sentiment.  
-![sadness](./images/result_sadness.png)
+![sadness](./images/result_sadness.PNG)
 
 The second example shows a classification of surprise with a negative sentiment.  The subjectivity is higher because surprise can be positive or negative depending on the situation.  
-![shocked](./images/result_shocked.png)
+![shocked](./images/result_shocked.PNG)
 
 The third example shows a classification of joy with a positive sentiment.   
-![joy](./images/result_joy.png)
+![joy](./images/result_joy.PNG)
 
 
 
