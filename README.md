@@ -32,7 +32,7 @@ relevant to emotion classification, so a small subset of stopwords were kept wit
 
 
 Multiple pipelines were created and added to a FeatureUnion to apply different transformers on the same input data.  These transformers were applied in parallel and the output was concatenated.  Then, a ColumnTransformer was used to apply different data
-transformations for text and numeric columns.  The resulting preprocessor was used as the first step within the machine learning pipeline.  A RandomizedSearchCV was used instead of a GridSearchCV to save processing time.  Instead of 
+transformations for text and numeric columns.  The resulting preprocessor was used as the first step within the machine learning pipeline.  Cross-valdiation was performed using a RandomizedSearchCV with 3-folds instead of a GridSearchCV to save processing time.  Instead of 
 trying out all hyperparameter permutations, RandomizedSearchCV trains the model based on a fixed number of hyperparameter combinations sampled from a probability distribution.  
 
 The functions listed in the table below are all within the emotions_model.py file.  They are listed along with the corresponding technical component of this project.
@@ -55,26 +55,34 @@ The functions listed in the table below are all within the emotions_model.py fil
 | *save_model*| Model serialization| 
 | *load_model*| Model deserialization| 
 
+The application was custom developed using the plotly-dash packages.  Initially, the layout was built and an initial callback that changed the image based on a dropdown component was created.  That same
+callback logic was then used once the model was deserialized within the application, so the image was then changed based on the model prediction.  The sentiment was then added to a graph
+within the application, and positive and negative sentiment were color-coded in green and red, respectively.
 
 # Metrics
 Due to the imbalance of emotions in the dataset (joy=34%, sadness=29%, anger=14%, fear=12%, love=8%, and surprise=4%), the precision and recall were calculated. Here, there was not a need to optimize precision nor recall, so the f1 score was also calculated.  f1 score accounts 
-for more extreme values.  Accuracy alone would not provide a holistic view of the model performance.  A possible next step would be to use over-sampling techniques with the SMOTE package for underreprented categories (fear, love, and surprise).  
-
-
+for more extreme values.  Accuracy alone would not provide a holistic view of the model performance.   
 
 # Data Exploration Summary
-For detailed analysis and results, go to the eda.html file or run the eda.ipynb/eda.py files.  
-
-
+For detailed analysis and data visualizations, go to the eda.html file or run the eda.ipynb/eda.py files.  
 
 
 # Implementation 
 
 ## Model selection
-Support vector machines (SVM) were used since the are useful for text categorization for the following reasons [Joachims, Thorsten: Text Categorization with Support Vector Machines: Learning with Many Relevant Features](https://www.cs.cornell.edu/people/tj/publications/joachims_98a.pdf):
+Support vector machines (SVM) were used since they are useful for text categorization for the following reasons [Joachims, Thorsten: Text Categorization with Support Vector Machines: Learning with Many Relevant Features](https://www.cs.cornell.edu/people/tj/publications/joachims_98a.pdf):
 - SVMs can handle high dimensional input space.  The TFIDFVectorizer generates a large amount of features from the text data
 - SVMs are well suited to handle problems that use sparse matrices.  The TFIDFVectorizer generates a sparse matrix from the text data.
 	- SVM determines the best decision boundary between vectors.  We can convert text into vector representations and apply the algorithm to text classificaton problems  
+
+## Hyperparameter tuning
+SVM models use a hyperplane to split the parameter space for each classification target.  The kernel, C, and gamma parameters were tuned here, and more information about SVM hyperparameter 
+tuning can be seen [here](https://towardsdatascience.com/hyperparameter-tuning-for-support-vector-machines-c-and-gamma-parameters-6a5097416167).  The C parameter controls the tradeoff between a smooth
+decision boundary and classifying training points correctly.  Large C values will result in getting all training points classified correctly while small C values will result in a smoother boundary.  The hyperparameter space for the C parameter was defined over 4 orders of magnitude to cover both large and small C values.  The gamma parameter defines how much influence a single training
+example has.  A higher gamma can result in an intricate decision boundary since points close to the boundary are weighted more heavily.  Finally, the hyperplane can be defined with a linear relatinship or non-linear (polynomial, sigmoid, etc).  Linear 
+and non-linear kernels were incorporated into the hyperparameter tuning space.  
+
+
 
 ## Module import complication
 When running the application and importing functions from the emotions_model.py file, the entire emotions_model.py file was run at the time of import.  After some [research](https://www.pythonmorsels.com/importing-module-runs-code/), I had discovered
@@ -99,10 +107,11 @@ set theory to obtain words specific to only one emotion label.
 | model.pkl| Serialized classification model.  This is generated in the emotions_model.py file.|
 | data/emotion_corpus.txt | Dataset containing the six emotions for model training and EDA |
 | images/*.jpg | Images for the application based on model result | 
+| top_words_per_target.pkl | Serialized dictionary of top percentile words associated with each emotion |
 
 
 # How to interact with this project
-The .py files within the repository were designed for others to replicate the analysis if desired.    
+The files within the repository were designed for others to replicate the analysis.    
 
 
 ## Instructions
@@ -122,8 +131,8 @@ The .py files within the repository were designed for others to replicate the an
 
 
 
-# Results summary
-The following results were after implementing the TFIDFVectorizer within the pre-processing pipeline and adding the sentiment score from TextBlob.    
+# Model evaluation and validation
+The following results were after implementing the TFIDFVectorizer within the pre-processing pipeline and adding the sentiment score from TextBlob on the test set.    
 
 ![metrics](./images/metrics1.png)
 
@@ -138,7 +147,20 @@ In general, scores increased for most categories by 1%.
 
 ![metrics](./images/metrics2.png)
 
-## Sample classification results
+## Hyperparameter optimization
+
+The table below shows the best-fit values for each parameter:
+
+| Parameter| Value |
+| ----------- | ----------- |
+| kernel|  radial basis function (rbf)|
+| C | 10 |
+| gamma | 0.1|
+
+The C parameter was one of the higher orders of magnitdue, indicating that the optimization prioritized getting all training points classified correctly.  The gamma parameter was the loweset order
+of magnitude, indicating that the optimization had the influence of a single training point as minimal.  
+
+# Sample classification results
 The first example shows a classification of sadness with a negative sentiment.  
 ![sadness](./images/result_sadness.PNG)
 
@@ -148,6 +170,19 @@ The second example shows a classification of surprise with a negative sentiment.
 The third example shows a classification of joy with a positive sentiment.   
 ![joy](./images/result_joy.PNG)
 
+# Conclusion
+## Reflection
+Text classification has numerous applications in a variety of fields.  Here, text classification techniques were used to identify six different emotions from a dataset.  Initially, an
+exploratory data analysis process was conducted to find target frequency, top keywords, and other characteristics of the data to help generate features.  Extensive pre-processing was applied here 
+based on using multiple pipelines, FeatureUnion, CustomTransformer, and ColumnTransformers.  The classification model was created and serialized after performing a cross validation to find 
+the best hyperparameters.  That same model was deserialized and put within a web-application to see a visual representation of the classification associated with an image of characters from the 
+Disney-Pixar movie *Inside out*.  The associated sentiment of the input was determined using the TextBlob package.  The custom-built application was especially interesting and specifically how two incorporate a model developed in another file.   
+
+## Improvement
+As with many machine learning problems, there are several limitations to this project that, if addressed, may improve the model results.  First, the SVM classifier in scikit-learn has other
+model parameters that could be tuned.  Specifically the class_weight parameter to handle drastically imbalanced datasets.  Here, the default was 'balanced', which automatically adjusts weights
+inversely proportional to the target frequency.  Regarding target imbalance, a possible next step would be to use over-sampling techniques with the SMOTE package for underreprented categories (fear, love, and surprise). 
+Second, the number of cross-validation folds could either be a) increased and b) a full GridSearch could be used to search the entire parameter space.  The RandomizedSearchCV saved processing time for this project, which is why it was chosen over a GridSearchCV.  A [HalfingGridSearchCV](https://scikit-learn.org/stable/modules/grid_search.html#successive-halving-user-guide) could also be used to identify best-fit parameters.  Finally, other classification algorithms could be tested to compare the results; [AutoML](https://towardsdatascience.com/4-python-automl-libraries-every-data-scientist-should-know-680ff5d6ad08) libraries could help with this.  
 
 
 # Licensing, Authors, Acknowledgements

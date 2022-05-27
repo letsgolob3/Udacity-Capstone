@@ -376,30 +376,29 @@ def set_pipelines(X_train,y_train):
     # Machine learning pipeline
     pipeML=Pipeline([
         ('preprocessor',preprocessor_str_num),
-        ('clf',svm.SVC(kernel='linear',C=1,gamma=0.1))
+        ('clf',svm.SVC())
+        # ('clf',svm.SVC(kernel='linear',C=1,gamma=0.1))
         ])
     
     
     # Parameters for chosen classifier
-    # parameters = {
-    #     'clf__gamma': [0.1, 1.0,10],
-    #     'clf__kernel': ['linear','poly','rbf'],
-    #     'clf__C': [.1,1,10,100],
-    #     }
+    parameters = {
+        'clf__gamma': [0.1, 1.0,10],
+        'clf__kernel': ['linear','poly','rbf'],
+        'clf__C': [.1,1,10,100],
+        }
 
     print('Fitting model')
-    pipeML.fit(X_train,y_train)
+    # pipeML.fit(X_train,y_train)
     
-    
-    
-    # cv=RandomizedSearchCV(pipeML,param_distributions=parameters,cv=2,verbose=2)
+    cv=RandomizedSearchCV(pipeML,param_distributions=parameters,cv=3,verbose=2)
 
 
-    # cv.fit(X_train,y_train)
+    cv.fit(X_train,y_train)
 
-    # print(cv.best_params_)
+    print(cv.best_params_)
     
-    # print(cv.best_score_)
+    print(cv.best_score_)
     
     try:
         terms = preprocessor_str_num.named_transformers_['text'].transformer_list[0][1].get_feature_names()
@@ -411,7 +410,7 @@ def set_pipelines(X_train,y_train):
         print('x_train transform did not work')
         pass
 
-    return pipeML
+    return cv
   
 def get_performance(model,X_test,y_test):
     '''
